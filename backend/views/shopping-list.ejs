@@ -1,0 +1,29 @@
+<%- include('partials/header') %>
+
+<h2>Shopping List</h2>
+
+<% if (items.length === 0) { %>
+  <p>No items in this list.</p>
+<% } else { %>
+  <ul>
+    <% items.forEach(item => { %>
+      <li>
+        <strong><%= item.name %></strong> — <%= item.status || 'pending' %>
+        <form action="/feedback" method="POST" style="display:inline;">
+            <input type="hidden" name="user_id" value="<%= userId %>">
+            <input type="hidden" name="list_id" value="<%= item.list_item_id %>">
+            <input type="hidden" name="product_id" value="<%= item.product_id %>">
+            <select name="status">
+                <option value="found">Found</option>
+                <option value="not_found">Not Found</option>
+            </select>
+
+            <input type="text" name="comment" placeholder="Comment...">
+            <button type="submit">Submit</button>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include('partials/footer') %>

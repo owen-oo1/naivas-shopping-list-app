@@ -6,12 +6,21 @@ import feedbackRoutes from "./routes/feedback.js";
 
 const app = express();
 app.use(express.json());
-app.use("/shopping", shoppingRoutes);
+app.use("/shopping-list", shoppingRoutes);
 app.use("/reports", reportRoutes);
 app.use("/feedback", feedbackRoutes);
 
+// EJS setup
+app.set("view engine", "ejs");
+app.set("views", "./views");
+
+// Middlewares
+app.use(express.urlencoded({ extended: true })); // for form POSTs from EJS
+app.use(express.json());
+app.use(express.static("public")); // serve public/css/styles.css etc.
+
 app.get("/", (req, res) => {
-  res.send("Naivas API is running ✅");
+  res.render("index", { title: "Naivas App" });
 });
 
 app.get("/products", async (req, res) => {
