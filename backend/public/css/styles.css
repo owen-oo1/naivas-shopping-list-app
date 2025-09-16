@@ -4,13 +4,13 @@ body {
     padding:0; 
 }
 
-.header { 
+header { 
     background:orange; 
     color:white; 
     padding:12px; 
 
 }
-.header nav a { 
+header nav a { 
     color: #fff; 
     margin-right:8px; 
     text-decoration:none; 

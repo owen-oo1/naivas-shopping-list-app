@@ -1,0 +1,72 @@
+<%- include("partials/header") %>
+
+<h2><%= title %></h2>
+
+<!-- Dead Stock -->
+<section>
+  <h3>Dead Stock</h3>
+  <% if (deadStock.length === 0) { %>
+    <p>No dead stock products found.</p>
+  <% } else { %>
+    <table border="1" cellpadding="5">
+      <tr>
+        <th>Product ID</th>
+        <th>Product Name</th>
+      </tr>
+      <% deadStock.forEach(item => { %>
+        <tr>
+          <td><%= item.product_id %></td>
+          <td><%= item.name %></td>
+        </tr>
+      <% }) %>
+    </table>
+  <% } %>
+</section>
+
+<hr>
+
+<!-- Lazy Staff -->
+<section>
+  <h3>Lazy Staff</h3>
+  <% if (lazyStaff.length === 0) { %>
+    <p>No lazy staff issues detected.</p>
+  <% } else { %>
+    <table border="1" cellpadding="5">
+      <tr>
+        <th>Product</th>
+        <th>Customer Comment</th>
+      </tr>
+      <% lazyStaff.forEach(item => { %>
+        <tr>
+          <td><%= item.name %></td>
+          <td><%= item.comment %></td>
+        </tr>
+      <% }) %>
+    </table>
+  <% } %>
+</section>
+
+<hr>
+
+<!-- Popular Products -->
+<section>
+  <h3>Popular Products</h3>
+  <% if (popular.length === 0) { %>
+    <p>No popular products yet.</p>
+  <% } else { %>
+    <table border="1" cellpadding="5">
+      <tr>
+        <th>Product</th>
+        <th>Times Requested</th>
+      </tr>
+      <% popular.forEach(item => { %>
+        <tr>
+          <td><%= item.name %></td>
+          <td><%= item.times_requested %></td>
+        </tr>
+      <% }) %>
+    </table>
+  <% } %>
+</section>
+
+<%- include("partials/footer") %>

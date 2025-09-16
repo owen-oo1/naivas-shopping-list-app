@@ -6,21 +6,19 @@ const router = express.Router();
 // feedback for an item in a shopping list
 router.post("/", async (req, res) => {
   try {
-    const { list_id, product_id, status, comment } = req.body;
+    const { list_item_id, product_id, status, comment } = req.body;
 
     const result = await db.query(
       `UPDATE Shopping_List_Items
-       SET status = $1, comment = $2
-       WHERE list_id = $3 AND product_id = $4
-       RETURNING *`,
-      [status, comment, list_id, product_id]
+      SET status = $1, comment = $2
+      WHERE list_item_id = $3 AND product_id = $4
+      RETURNING list_id`,
+      [status, comment, list_item_id, product_id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Shopping list item not found" });
-    }
-
-    res.json(result.rows[0]);
+    const list_id = result.rows[0].list_id;
+    res.redirect(`/shopping-list/${list_id}`);
+  
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");

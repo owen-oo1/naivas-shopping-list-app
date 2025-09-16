@@ -1,18 +1,17 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title><%= title %> | Naivas</title>
+  <title><%= title || "Naivas App" %></title>
   <link rel="stylesheet" href="/css/styles.css"/>
 </head>
 <body>
-  <header class="header">
-    <h1>Naivas Shopping List</h1>
+  <header>
+    <h1><%= title || "Naivas App" %></h1>
     <nav>
       <a href="/">Home</a> |
-      <a href="/shopping-list/1">My Shopping List</a> |
-      <a href="/reports">Reports</a>
+      <a href="/shopping-list/1">Shopping List (User 1)</a>
     </nav>
   </header>
   <main>

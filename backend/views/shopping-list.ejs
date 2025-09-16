@@ -9,17 +9,19 @@
     <% items.forEach(item => { %>
       <li>
         <strong><%= item.name %></strong> — <%= item.status || 'pending' %>
-        <form action="/feedback" method="POST" style="display:inline;">
-            <input type="hidden" name="user_id" value="<%= userId %>">
-            <input type="hidden" name="list_id" value="<%= item.list_item_id %>">
-            <input type="hidden" name="product_id" value="<%= item.product_id %>">
-            <select name="status">
-                <option value="found">Found</option>
-                <option value="not_found">Not Found</option>
-            </select>
+        <form action="/shopping-list/feedback" method="POST" style="display:inline;">
+          <input type="hidden" name="user_id" value="<%= userId %>">
+          <input type="hidden" name="list_id" value="<%= item.list_id %>">
+          <input type="hidden" name="list_item_id" value="<%= item.list_item_id %>">
+          <input type="hidden" name="product_id" value="<%= item.product_id %>">
 
-            <input type="text" name="comment" placeholder="Comment...">
-            <button type="submit">Submit</button>
+          <select name="status">
+            <option value="found" <%= item.status === 'found' ? 'selected' : '' %>>Found</option>
+            <option value="not_found" <%= item.status === 'not_found' ? 'selected' : '' %>>Not Found</option>
+          </select>
+
+          <input type="text" name="comment" placeholder="Comment..." value="<%= item.comment || '' %>">
+          <button type="submit">Submit</button>
         </form>
       </li>
     <% }) %>
