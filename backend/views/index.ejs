@@ -1,13 +1,20 @@
 <%- include('partials/header') %>
 
-<h1>Welcome to Naivas Shopping List MVP</h1>
-<p>This is a simple proof of concept to test shopping lists and feedback flow.</p>
 
-<nav>
-  <ul>
-    <li><a href="/shopping-list/1">View Shopping List (User 1)</a></li>
-    <li><a href="/shopping-list/2">View Shopping List (User 2)</a></li>
-  </ul>
-</nav>
+<div class="jumbotron centered">
+  <div class="container">
+    <svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" fill="currentColor" class="bi bi-card-checklist" viewBox="0 0 16 16">
+      <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2z"/>
+      <path d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0M7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0"/>
+    </svg>
+    <h1 class="display-3">Naivas Retail shopping list</h1>
+    <p class="lead">Ready to shop smart? 📋 Add your items and stay organized!</p>
+    <hr>
+    <a class="btn btn-light btn-lg" href="/register" role="button">Register</a>
+    <a class="btn btn-dark btn-lg" href="/login" role="button">Login</a>
+
+  </div>
+</div>
 
 <%- include('partials/footer') %>
+

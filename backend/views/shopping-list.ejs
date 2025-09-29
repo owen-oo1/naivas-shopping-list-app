@@ -1,31 +1,131 @@
 <%- include('partials/header') %>
 
-<h2>Shopping List</h2>
-
-<% if (items.length === 0) { %>
-  <p>No items in this list.</p>
-<% } else { %>
-  <ul>
-    <% items.forEach(item => { %>
-      <li>
-        <strong><%= item.name %></strong> — <%= item.status || 'pending' %>
-        <form action="/shopping-list/feedback" method="POST" style="display:inline;">
-          <input type="hidden" name="user_id" value="<%= userId %>">
-          <input type="hidden" name="list_id" value="<%= item.list_id %>">
-          <input type="hidden" name="list_item_id" value="<%= item.list_item_id %>">
-          <input type="hidden" name="product_id" value="<%= item.product_id %>">
-
-          <select name="status">
-            <option value="found" <%= item.status === 'found' ? 'selected' : '' %>>Found</option>
-            <option value="not_found" <%= item.status === 'not_found' ? 'selected' : '' %>>Not Found</option>
-          </select>
-
-          <input type="text" name="comment" placeholder="Comment..." value="<%= item.comment || '' %>">
-          <button type="submit">Submit</button>
-        </form>
-      </li>
-    <% }) %>
-  </ul>
+<!-- Add new item form -->
+<% if (showAddItemForm) { %>
+  <form action="/shopping-list/lists/add-item/<%= listId %>" method="POST">
+    <input type="text" id="productInput" name="product_name" placeholder="Type to search product..." autocomplete="off" required>
+    <input type="hidden" id="productIdInput" name="product" value="">
+    <input type="number" name="quantity" placeholder="Qty" required min="1">
+    <button type="submit">Add Item</button>
+    <div id="suggestions" class="autocomplete-suggestions"></div>
+  </form>
 <% } %>
 
+<% lists.forEach(list => { %>
+  <h2><%= list.title %> - <%= list.branch %></h2>
+  <hr>
+
+  <table border="1" cellpadding="5">
+    <thead>
+      <tr>
+        <th>Done</th>
+        <th>Date</th>
+        <th>Product name</th>
+        <th>Category</th>
+        <th>Qty</th>
+        <th>Price</th>
+        <th>Comments</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+  <tbody>
+    <% list.shopping_list.forEach(row => { %>
+      <% if (row.product_name === 'DAILY TOTAL') { %>
+        <tr class="daily-total">
+          <td colspan="6"></td>
+          <td><strong><%= row.product_name %></strong></td>
+          <td><strong>KES <%= row.totals %></strong></td>
+        </tr>
+      <% } else { %>
+        <tr>
+          <td>
+              <% if (row.list_item_id) { %>
+                <form action="/shopping-list/<%= listId %>/items/<%= row.list_item_id %>/done" method="POST">
+                  <input type="hidden" name="list_item_id" value="<%= row.list_item_id %>">
+                  <input type="checkbox" name="done" value="true" 
+                    onchange="this.form.submit()" <%= row.status === 'found' ? 'checked' : '' %>>
+                </form>
+              <% } %>
+          </td>
+          <td><%= row.created_date %></td>
+          <td><%= row.product_name %></td>
+          <td><%= row.category || '' %></td>
+          <td><%= row.quantity_requested || '' %></td>
+          <td>KES <%= row.price || '' %></td>
+          <td>
+            <% if (!showAddItemForm) { %>
+              <%= row.comment || '' %>
+            <% } else { %>
+              <span class="comment-text" id="comment-text-<%= row.list_item_id %>">
+                <%= row.comment || '' %>
+                <a href="#" onclick="showEditComment('<%= row.list_item_id %>'); return false;">edit</a>
+              </span>
+              <form id="comment-form-<%= row.list_item_id %>" action="/shopping-list/<%= listId %>/items/<%= row.list_item_id %>/comment" method="POST" style="display:none;">
+                <input type="text" name="comment" value="<%= row.comment || '' %>">
+                <button type="submit">Save</button>
+                <button type="button" onclick="hideEditComment('<%= row.list_item_id %>')">Cancel</button>
+              </form>
+            <% } %>
+          </td>
+          <td>KES <%= row.totals %></td>
+          <td>
+            <% if (row.list_item_id && showAddItemForm) { %>
+              <form action="/shopping-list/<%= listId %>/items/<%= row.list_item_id %>/delete" method="POST" style="display:inline;">
+                <button type="submit" style="background:none;border:none;cursor:pointer;">
+                  🗑️
+                </button>
+              </form>
+              <form action="/shopping-list/<%= listId %>/items/<%= row.list_item_id %>/done" method="POST" style="display:inline;">
+                <input type="hidden" name="list_item_id" value="<%= row.list_item_id %>">
+                <input type="checkbox" name="done" value="true" 
+                  onchange="this.form.submit()" <%= row.status === 'found' ? 'checked' : '' %>>
+              </form>
+            <% } %>
+</td>
+        </tr>
+      <% } %>
+    <% }) %>  
+
+  </tbody>
+
+  </table>
+
+  <hr>
+  <br><br> <!-- Adds space between tables -->
+<% }) %>
 <%- include('partials/footer') %>
+
+<script>
+  document.getElementById('productInput').addEventListener('input', async function() {
+    const query = this.value;
+    if (query.length < 2) {
+      document.getElementById('suggestions').innerHTML = '';
+      return;
+    }
+    const res = await fetch(`/shopping-list/products/suggest?q=${encodeURIComponent(query)}`);
+    const suggestions = await res.json();
+    let html = '';
+    suggestions.forEach(product => {
+      html += `<div class="suggestion-item" data-id="${product.product_id}">${product.name}</div>`;
+    });
+    document.getElementById('suggestions').innerHTML = html;
+  });
+
+  // handle click on suggestion to fill input
+  document.getElementById('suggestions').addEventListener('click', function(e) {
+    if (e.target.classList.contains('suggestion-item')) {
+      document.getElementById('productInput').value = e.target.textContent;
+      document.getElementById('productIdInput').value = e.target.dataset.id;
+      this.innerHTML = '';
+    }
+  });
+
+  function showEditComment(id) {
+    document.getElementById('comment-text-' + id).style.display = 'none';
+    document.getElementById('comment-form-' + id).style.display = '';
+  }
+  function hideEditComment(id) {
+    document.getElementById('comment-form-' + id).style.display = 'none';
+    document.getElementById('comment-text-' + id).style.display = '';
+  }
+</script>
