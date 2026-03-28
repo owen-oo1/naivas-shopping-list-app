@@ -1,216 +1,149 @@
 import express from "express";
-import bodyParser from "body-parser";
-import bcrypt from "bcrypt";
+import cors from "cors";
+import dotenv from "dotenv";
 import passport from "passport";
-import { Strategy } from "passport-local";
-import GoogleStrategy from "passport-google-oauth2";
-import session from "express-session";
+import { Strategy as GoogleStrategy } from "passport-google-oauth2";
+import bcrypt from "bcrypt";
 import db from "./db.js";
+import { signToken, requireAuth } from "./middleware/auth.js";
 import shoppingRoutes from "./routes/shopping.js";
 import reportRoutes from "./routes/reports.js";
+import branchRoutes from "./routes/branches.js";
+
+dotenv.config();
 
 const app = express();
 const saltRounds = 10;
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: true,
-  })
-);
-
+// ── CORS ────────────────────────────────────────
+app.use(cors({
+  origin: process.env.CLIENT_URL || "http://localhost:8080",
+  credentials: true,
+}));
 app.use(express.json());
 
+// ── Passport (Google OAuth only — sessions for OAuth redirect flow) ───
+import session from "express-session";
+app.use(session({ secret: process.env.SESSION_SECRET || "dev", resave: false, saveUninitialized: false }));
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Middlewares
-app.use(bodyParser.urlencoded({ extended: true })); // for form POSTs from EJS
-app.use(express.json());
-app.use(express.static("public")); // serve public/css/styles.css etc.
-
-app.use("/shopping-list", shoppingRoutes);
-app.use("/reports", reportRoutes);
-// app.use("/feedback", feedbackRoutes);
-
-// EJS setup
-app.set("view engine", "ejs");
-app.set("views", "./views");
-
-app.get("/", (req, res) => {
-  res.render("index.ejs");
-});
-
-app.get("/login", (req, res) => {
-  res.render("login.ejs");
-});
-
-app.get("/register", (req, res) => {
-  res.render("register.ejs");
-});
-
-app.get("/logout", (req, res) => {
-  req.logout(function (err) {
-    if (err) {
-      return next(err);
-    }
-    res.redirect("/");
-  });
-});
-
-app.get("/secrets", async (req, res) => {
-  if (req.isAuthenticated()) {
-    const results = await db.query("SELECT * FROM shopping_list WHERE user_id = $1", [
-      req.user.email, 
-    ]);
-
-    const secretMsg = results.rows[0].secret;
-    res.render("secrets.ejs", {secret: secretMsg});
-  } else {
-    res.redirect("/login");
-  }
-});
-
-app.get("/submit", (req, res) => {
-  if (req.isAuthenticated()) {
-    res.render("submit.ejs");
-  } else {
-    res.redirect("/login");
-  }
-});
-
-app.get(
-  "/auth/google",
-  passport.authenticate("google", {
-    scope: ["profile", "email"],
-  })
-);
-
-app.get(
-  "/auth/google/secrets",
-  passport.authenticate("google", {
-    successRedirect: "/shopping-list/createhome",
-    failureRedirect: "/login",
-  })
-);
-
-app.post(
-  "/login",
-  passport.authenticate("local", {
-    successRedirect: "/shopping-list/createhome",
-    failureRedirect: "/login",
-  })
-);
-
-app.post("/register", async (req, res) => {
-  const email = req.body.username;
-  const password = req.body.password;
-  const name = req.body.name;
-
-  try {
-    const checkResult = await db.query("SELECT * FROM users WHERE email = $1", [
-      email,
-    ]);
-
-    if (checkResult.rows.length > 0) {
-      req.redirect("/login");
-    } else {
-      bcrypt.hash(password, saltRounds, async (err, hash) => {
-        if (err) {
-          console.error("Error hashing password:", err);
-        } else {
-          const result = await db.query(
-            "INSERT INTO users (email, password, name) VALUES ($1, $2, $3)",
-            [email, hash, name]
-          );
-          const user = result.rows[0];
-          req.session.email = email; 
-          req.login(user, (err) => {
-            console.log("success");
-            res.redirect("/shopping-list/createhome");
-          });
-        }
-      });
-    }
-  } catch (err) {
-    console.log(err);
-  }
-});
+passport.serializeUser((user, cb) => cb(null, user));
+passport.deserializeUser((user, cb) => cb(null, user));
 
 passport.use(
-  "local",
-  new Strategy(async function verify(username, password, cb) {
-    try {
-      const result = await db.query("SELECT * FROM users WHERE email = $1 ", [
-        username,
-      ]);
-      if (result.rows.length > 0) {
-        const user = result.rows[0];
-        const storedHashedPassword = user.password;
-        bcrypt.compare(password, storedHashedPassword, (err, valid) => {
-          if (err) {
-            console.error("Error comparing passwords:", err);
-            return cb(err);
-          } else {
-            if (valid) {
-              return cb(null, user);
-            } else {
-              return cb(null, false);
-            }
-          }
-        });
-      } else {
-        return cb("User not found");
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  })
-);
-
-passport.use(
-  "google",
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "http://localhost:3000/auth/google/secrets",
+      callbackURL: process.env.GOOGLE_CALLBACK_URL || "http://localhost:3000/auth/google/callback",
       userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
     },
-    async (accessToken, refreshToken, profile, cb) => {
+    async (_accessToken, _refreshToken, profile, cb) => {
       try {
-        console.log(profile);
-        const result = await db.query("SELECT * FROM users WHERE email = $1", [
-          profile.email,
-        ]);
-        if (result.rows.length === 0) {
-          const newUser = await db.query(
-            "INSERT INTO users (name, email, password) VALUES ($1, $2, $3)",
-            [profile.name, profile.email, "google"]
+        const existing = await db.query("SELECT * FROM users WHERE email = $1", [profile.email]);
+        let user;
+        if (existing.rows.length === 0) {
+          const result = await db.query(
+            "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, 'customer') RETURNING *",
+            [profile.displayName, profile.email, "google_oauth"]
           );
-          const user = newUser.rows[0];
-          return cb(null, user);
+          user = result.rows[0];
         } else {
-          const user = result.rows[0];
-          return cb(null, user);
+          user = existing.rows[0];
         }
+        return cb(null, user);
       } catch (err) {
         return cb(err);
       }
     }
   )
 );
-passport.serializeUser((user, cb) => {
-  cb(null, user);
+
+// ── Auth routes ─────────────────────────────────
+
+// Register (email/password)
+app.post("/register", async (req, res) => {
+  const { name, username, password } = req.body;
+  if (!name || !username || !password) {
+    return res.status(400).json({ message: "Name, email and password are required" });
+  }
+  try {
+    const exists = await db.query("SELECT id FROM users WHERE email = $1", [username]);
+    if (exists.rows.length > 0) {
+      return res.status(409).json({ message: "Email already registered" });
+    }
+    const hash = await bcrypt.hash(password, saltRounds);
+    const result = await db.query(
+      "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, 'customer') RETURNING id, name, email, role",
+      [name, username, hash]
+    );
+    const user = result.rows[0];
+    const token = signToken(user);
+    res.status(201).json({ user, token });
+  } catch (err) {
+    console.error("Register error:", err);
+    res.status(500).json({ message: "Registration failed" });
+  }
 });
 
-passport.deserializeUser((user, cb) => {
-  cb(null, user);
+// Login (email/password)
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+  try {
+    const result = await db.query("SELECT * FROM users WHERE email = $1", [username]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    const user = result.rows[0];
+    if (user.password === "google_oauth") {
+      return res.status(401).json({ message: "This account uses Google sign-in" });
+    }
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    const token = signToken({ id: user.id, email: user.email, role: user.role, name: user.name });
+    res.json({
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      token,
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Login failed" });
+  }
 });
 
+// Logout (client-side token removal; this is a no-op endpoint)
+app.get("/logout", (_req, res) => {
+  res.json({ message: "Logged out" });
+});
 
-const PORT = process.env.PORT;
+// Google OAuth — redirect flow
+app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+
+app.get("/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  (req, res) => {
+    // Issue JWT and redirect to frontend with token
+    const token = signToken(req.user);
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+    res.redirect(`${clientUrl}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
+      id: req.user.id, name: req.user.name, email: req.user.email, role: req.user.role
+    }))}`);
+  }
+);
+
+// ── Protected API routes ────────────────────────
+app.use("/shopping-list", requireAuth, shoppingRoutes);
+app.use("/reports", requireAuth, reportRoutes);
+app.use("/branches", requireAuth, branchRoutes);
+
+// ── Start server ────────────────────────────────
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Naivas API running on port ${PORT}`);
 });
