@@ -69,24 +69,29 @@ export default function ShoppingListDetail() {
     setEditingComment(null);
   };
 
-  const addItem = (e: React.FormEvent) => {
+  const addItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) return;
-    const newItem = {
-      list_item_id: `new-${Date.now()}`,
-      product_name: selectedProduct.name,
-      category: selectedProduct.category,
-      quantity_requested: quantity,
-      price: selectedProduct.price,
-      status: 'pending' as const,
-      created_date: new Date().toISOString().split('T')[0],
-      totals: (selectedProduct.price || 0) * quantity,
-    };
-    setItems(prev => [...prev, newItem]);
-    setShowAdd(false);
-    setProductSearch('');
-    setSelectedProduct(null);
-    setQuantity(1);
+    try {
+      await api.addItem(id, selectedProduct.name, selectedProduct.product_id, quantity);
+      const newItem = {
+        list_item_id: `new-${Date.now()}`,
+        product_name: selectedProduct.name,
+        category: selectedProduct.category,
+        quantity_requested: quantity,
+        price: selectedProduct.price,
+        status: 'pending' as const,
+        created_date: new Date().toISOString().split('T')[0],
+        totals: (selectedProduct.price || 0) * quantity,
+      };
+      setItems(prev => [...prev, newItem]);
+      setShowAdd(false);
+      setProductSearch('');
+      setSelectedProduct(null);
+      setQuantity(1);
+    } catch (err) {
+      console.error("Failed to add item:", err);
+    }
   };
 
   const statusBadge = (status: string) => {

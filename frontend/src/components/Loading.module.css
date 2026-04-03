@@ -1,0 +1,49 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  color: #374151;
+  background: rgba(243, 244, 246, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  animation: fadeIn 0.35s ease-out;
+}
+
+.spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 0.35rem solid rgba(99, 102, 241, 0.25);
+  border-top-color: green;
+  border-radius: 9999px;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -8,6 +8,7 @@ router.get("/lists", async (req, res) => {
   try {
     let query, params;
     if (req.user.role === "manager" || req.user.role === "staff") {
+      const user = 'management';
       query = `
         SELECT sl.id, sl.title, b.name AS branch, sl.branch_id, sl.created_at,
                COUNT(sli.id) AS item_count,
@@ -19,7 +20,10 @@ router.get("/lists", async (req, res) => {
         GROUP BY sl.id, b.name
         ORDER BY sl.created_at DESC`;
       params = [];
+
+      console.log(`Success ---- ${user} viewing shopping lists`);
     } else {
+      const user = 'customer';
       query = `
         SELECT sl.id, sl.title, b.name AS branch, sl.branch_id, sl.created_at,
                COUNT(sli.id) AS item_count,
@@ -27,11 +31,13 @@ router.get("/lists", async (req, res) => {
         FROM shopping_lists sl
         LEFT JOIN branches b ON sl.branch_id = b.branch_id
         LEFT JOIN shopping_list_items sli ON sl.id = sli.list_id
-        LEFT JOIN products p ON sli.product_id = p.id
+        LEFT JOIN products p ON sli.product_id = p.product_id
         WHERE sl.user_id = $1
         GROUP BY sl.id, b.name
         ORDER BY sl.created_at DESC`;
       params = [req.user.id];
+
+      console.log(`Success ---- ${user} viewing shopping lists`);
     }
     const result = await db.query(query, params);
     res.json(result.rows);
@@ -56,6 +62,7 @@ router.post("/create", async (req, res) => {
     );
     const list = result.rows[0];
     res.status(201).json({ ...list, branch: branch || "" });
+    console.log(`Success ---- ${title} shopping list creted by user on ${branch} branch successfully`);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to create list" });
@@ -100,6 +107,7 @@ router.get("/lists/:id", async (req, res) => {
     );
 
     res.json({ ...list, shopping_list: itemsResult.rows, catalogue: products.rows});
+    console.log(`Success ---- User viewing live shopping list page`)
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to fetch list" });
@@ -110,12 +118,18 @@ router.get("/lists/:id", async (req, res) => {
 router.post("/lists/add-item/:listId", async (req, res) => {
   const { product_name, product_id, quantity } = req.body;
   try {
+    const category_obj = await db.query(
+      `SELECT category FROM public.products 
+      WHERE product_id = $1`, [product_id]
+    );
+    const category = category_obj.rows[0].category
     const result = await db.query(
-      `INSERT INTO shopping_list_items (list_id, product_id, quantity)
-       VALUES ($1, $2, $3) RETURNING *`,
-      [req.params.listId, product_id, quantity || 1]
+      `INSERT INTO shopping_list_items (list_id, product_id, quantity_requested, product_name, category)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [req.params.listId, product_id, quantity || 1, product_name, category]
     );
     res.status(201).json(result.rows[0]);
+    console.log(`Success ---- Item ${product_id} added successfully`);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to add item" });

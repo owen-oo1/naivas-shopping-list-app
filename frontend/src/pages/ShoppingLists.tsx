@@ -4,21 +4,26 @@ import { Plus, Search, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 // import { mockLists } from '@/lib/mock-data';
 import { api } from '@/lib/api';
+import LoadingContent from '@/components/Loading';
 
 export default function ShoppingLists() {
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState('');
   const [branch, setBranch] = useState('');
-  const [lists, setLists] = useState([]);
+  const [lists, setLists] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchLists = async () => {
+      setIsLoading(true);
       try {
         const data = await api.getLists();
         setLists(data);
       } catch (err) {
         console.error("ERROR:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -38,6 +43,19 @@ export default function ShoppingLists() {
     setTitle('');
     setBranch('');
   };
+
+  if (isLoading) {
+    return <LoadingContent />;
+  }
+
+  if (!lists || lists.length === 0) {
+    return (
+      <div className="text-center py-16 text-muted-foreground">
+        <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-40" />
+        <p>No lists found</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -109,13 +127,6 @@ export default function ShoppingLists() {
           </Link>
         ))}
       </div>
-
-      {filtered.length === 0 && (
-        <div className="text-center py-16 text-muted-foreground">
-          <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>No lists found</p>
-        </div>
-      )}
     </div>
   );
 }

@@ -49,6 +49,7 @@ passport.use(
             [profile.displayName, profile.email, "google_oauth"]
           );
           user = result.rows[0];
+          console.log(`Success ---- New user added successfully to DB`);
         } else {
           user = existing.rows[0];
         }
@@ -81,6 +82,7 @@ app.post("/register", async (req, res) => {
     const user = result.rows[0];
     const token = signToken(user);
     res.status(201).json({ user, token });
+    console.log(`Success ---- New user added successfully to DB (mail, password)`);
   } catch (err) {
     console.error("Register error:", err);
     res.status(500).json({ message: "Registration failed" });
@@ -111,6 +113,7 @@ app.post("/login", async (req, res) => {
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
       token,
     });
+    console.log(`Success ---- ${username} login access accepted successfully`);
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Login failed" });
@@ -120,6 +123,7 @@ app.post("/login", async (req, res) => {
 // Logout (client-side token removal; this is a no-op endpoint)
 app.get("/logout", (_req, res) => {
   res.json({ message: "Logged out" });
+  console.log(`Success ---- user logout successfully`);
 });
 
 // Google OAuth — redirect flow
@@ -134,6 +138,7 @@ app.get("/auth/google/callback",
     res.redirect(`${clientUrl}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
       id: req.user.id, name: req.user.name, email: req.user.email, role: req.user.role
     }))}`);
+    console.log(`Success ---- User login access accepted successfully (google auth)`);
   }
 );
 

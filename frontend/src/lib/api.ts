@@ -39,7 +39,7 @@ export const api = {
     request<ShoppingListDetail>(`/shopping-list/lists/${listId}`),
 
   addItem: (listId: string, productName: string, productId: string, quantity: number) =>
-    request(`/shopping-list/lists/add-item/${listId}`, { method: 'POST', body: JSON.stringify({ product_name: productName, product_id: productId, quantity }) }),
+    request(`/shopping-list/lists/add-item/${listId}`, { method: 'POST', body: JSON.stringify({ product_name: productName, product_id: productId, quantity}) }),
 
   toggleItemDone: (listId: string, itemId: string, done: boolean) =>
     request(`/shopping-list/${listId}/items/${itemId}/done`, { method: 'POST', body: JSON.stringify({ done }) }),
